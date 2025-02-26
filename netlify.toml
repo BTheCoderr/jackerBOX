@@ -1,0 +1,14 @@
+[build]
+  publish = "build/web"
+  command = """
+    git clone https://github.com/flutter/flutter.git -b stable
+    export PATH="$PATH:`pwd`/flutter/bin"
+    flutter precache
+    flutter pub get
+    flutter build web
+    """
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
