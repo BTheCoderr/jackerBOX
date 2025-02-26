@@ -1,28 +1,65 @@
 pluginManagement {
-    def flutterSdkPath = {
-        def properties = new Properties()
-        file("local.properties").withInputStream { properties.load(it) }
-        def flutterSdkPath = properties.getProperty("flutter.sdk")
-        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-        return flutterSdkPath
-    }()
-
-    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
     }
+
+    plugins {
+        id 'com.android.application' version '8.2.0'
+        id 'com.android.library' version '8.2.0'
+        id 'org.jetbrains.kotlin.android' version '1.9.20'
+        id 'com.google.gms.google-services' version '4.4.1'
+    }
 }
 
-plugins {
-    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-    id "com.android.application" version "7.3.0" apply false
-    // START: FlutterFire Configuration
-    id "com.google.gms.google-services" version "4.3.15" apply false
-    // END: FlutterFire Configuration
-    id "org.jetbrains.kotlin.android" version "1.7.10" apply false
+// Define flutterSdkPath as a String variable instead of a closure
+String flutterSdkPath = null
+
+// Try FLUTTER_ROOT environment variable
+flutterSdkPath = System.getenv('FLUTTER_ROOT')
+
+// If not found, try local.properties
+if (!flutterSdkPath) {
+    def properties = new Properties()
+    def propertiesFile = new File(settingsDir.parentFile, 'local.properties')
+    if (propertiesFile.exists()) {
+        propertiesFile.withReader('UTF-8') { reader -> properties.load(reader) }
+        flutterSdkPath = properties.getProperty('flutter.sdk')
+    }
 }
 
-include ":app"
+// If still not found, try the default Homebrew location
+if (!flutterSdkPath) {
+    def defaultPath = '/opt/homebrew/Caskroom/flutter/3.29.0/flutter'
+    if (new File(defaultPath).exists()) {
+        flutterSdkPath = defaultPath
+    }
+}
+
+assert flutterSdkPath != null, "Flutter SDK not found. Please set FLUTTER_ROOT environment variable or flutter.sdk in local.properties"
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "${flutterSdkPath}/bin/cache/artifacts/engine/android-arm"
+        }
+        maven {
+            url "${flutterSdkPath}/bin/cache/artifacts/engine/android-arm64"
+        }
+        maven {
+            url "${flutterSdkPath}/bin/cache/artifacts/engine/android-x64"
+        }
+    }
+}
+
+rootProject.name = 'android'
+include ':app'
+
+// Include the Flutter SDK
+includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle/module") {
+    name = "flutter"
+}
